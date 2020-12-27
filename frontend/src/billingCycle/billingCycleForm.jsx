@@ -1,22 +1,34 @@
 import React, { Component } from "react";
-import { reduxForm, Field } from "redux-form";
+import { reduxForm, Field, formValueSelector } from "redux-form";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 
-import labelAndInput from "../common/form/labelAndInput";
+import LabelAndInput from "../common/form/labelAndInput";
 import Row from "../common/layout/row";
 import { init } from "./billingCycleActions";
+import ItemList from "./itemList";
+import Summary from "./summary";
 
 class BillingCycleForm extends Component {
+
+    calculateSummary() {
+        const sum = (t, v) => t + v
+        return {
+            sumOfCredits: this.props.credits.map(c => +c.value || 0).reduce(sum),
+            sumOfDebits: this.props.debits.map(d => +d.value || 0).reduce(sum),
+        }
+    }
+    
     render() {
-        const { handleSubmit, readOnly } = this.props
+        const { handleSubmit, readOnly, credits, debits } = this.props
+        const { sumOfCredits, sumOfDebits } = this.calculateSummary()
         return (
             <form role='form' onSubmit={handleSubmit}>
                 <Row>
                     <div className="box-body">
                         <Field
                             name='name'
-                            component={labelAndInput}
+                            component={LabelAndInput}
                             label='Nome'
                             cols='12 4'
                             placeholder='Informe o nome'
@@ -24,7 +36,7 @@ class BillingCycleForm extends Component {
                         />
                         <Field
                             name='month'
-                            component={labelAndInput}
+                            component={LabelAndInput}
                             label='Mês'
                             cols='12 4'
                             placeholder='Informe o mês'
@@ -33,12 +45,26 @@ class BillingCycleForm extends Component {
                         />
                         <Field
                             name='year'
-                            component={labelAndInput}
+                            component={LabelAndInput}
                             label='Ano'
                             cols='12 4'
                             placeholder='Informe o ano'
                             type='number'
                             readOnly={readOnly}
+                        />
+                        <Summary credit={sumOfCredits} debit={sumOfDebits}/>
+                        <ItemList cols='12 6 6'
+                            list={credits}
+                            readOnly={readOnly}
+                            field='credits'
+                            legend='Créditos'
+                        />
+                        <ItemList cols='12 6 6'
+                            list={debits}
+                            readOnly={readOnly}
+                            field='debits'
+                            legend='Débitos'
+                            showStatus={true}
                         />
                     </div>
                 </Row>
@@ -56,11 +82,17 @@ class BillingCycleForm extends Component {
     }
 }
 
+BillingCycleForm = reduxForm({form: 'billingCycleForm', destroyOnUnmount: false })(BillingCycleForm)
+const selector = formValueSelector('billingCycleForm')
+
 const mapDispatchToProps = dispatch => 
     bindActionCreators({
         init
     }, dispatch)
 
-BillingCycleForm = reduxForm({form: 'billingCycleForm', destroyOnUnmount: false })(BillingCycleForm)
+const mapStateToProps = state => ({
+    credits: selector(state, 'credits'),
+    debits: selector(state, 'debits')
+})
 
-export default connect(null, mapDispatchToProps)(BillingCycleForm)
+export default connect(mapStateToProps, mapDispatchToProps)(BillingCycleForm)
